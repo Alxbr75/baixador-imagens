@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' thumb: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+<title>Baixador de Imagens</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="titlebar">
+    <div class="brand">
+      <img class="brand-mark" src="logo.svg" alt="" draggable="false">
+      <span class="brand-name">Baixador de Imagens</span>
+    </div>
+    <div class="titlebar-actions">
+      <button class="icon-btn" id="btnActivity" data-tip="Atividade" aria-label="Atividade"><i data-icon="activity"></i><span class="badge-dot" id="activityDot" hidden></span></button>
+      <button class="icon-btn" id="btnSettings" data-tip="Configurações" aria-label="Configurações"><i data-icon="settings"></i></button>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+    <section class="command" id="command">
+      <div class="segmented" id="modeSwitch" role="tablist" aria-label="Modo">
+        <span class="segmented-thumb" aria-hidden="true"></span>
+        <button role="tab" data-mode="pages" aria-selected="true"><i data-icon="link"></i>Páginas</button>
+        <button role="tab" data-mode="search" aria-selected="false"><i data-icon="search"></i>Buscar</button>
+      </div>
+
+      <div class="command-box" id="commandBox">
+        <i class="command-icon" id="commandIcon" data-icon="link"></i>
+        <textarea id="input" rows="1" spellcheck="false" placeholder="Cole o link de uma galeria, página ou imagem"></textarea>
+        <div class="search-options" id="searchOptions" hidden>
+          <div class="select">
+            <select id="provider" aria-label="Buscador">
+              <option value="bing">Bing</option>
+              <option value="duckduckgo">DuckDuckGo</option>
+            </select>
+          </div>
+          <div class="select">
+            <select id="searchPages" aria-label="Páginas de resultados">
+              <option value="1">1 página</option>
+              <option value="2">2 páginas</option>
+              <option value="3">3 páginas</option>
+              <option value="5">5 páginas</option>
+              <option value="10">10 páginas</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-go" id="go"><span id="goLabel">Escanear</span><kbd>↵</kbd></button>
+      </div>
+      <div class="command-hint" id="hint"></div>
+    </section>
+
+    <section class="toolbar" id="toolbar" hidden>
+      <div class="summary" id="summary"></div>
+
+      <div class="toolbar-group">
+        <div class="pop-anchor">
+          <button class="chip" id="chipSize" aria-haspopup="true"><i data-icon="maximize"></i><span>Tamanho</span><b id="sizeLabel"></b><i data-icon="chevron-down" class="chev"></i></button>
+          <div class="popover" id="popSize" hidden>
+            <div class="pop-title">Tamanho mínimo (maior lado)</div>
+            <div class="preset-grid" id="sizePresets"></div>
+            <label class="inline-field">Personalizado <input type="number" id="minSideCustom" min="0" step="100"> px</label>
+          </div>
+        </div>
+        <div class="pop-anchor">
+          <button class="chip" id="chipType" aria-haspopup="true"><i data-icon="image"></i><span>Tipos</span><b id="typeLabel"></b><i data-icon="chevron-down" class="chev"></i></button>
+          <div class="popover" id="popType" hidden>
+            <div class="pop-title">Tipos de arquivo</div>
+            <div class="check-list" id="typeList"></div>
+          </div>
+        </div>
+        <div class="pop-anchor">
+          <button class="chip" id="chipSource" aria-haspopup="true"><i data-icon="layers"></i><span>Origem</span><b id="sourceLabel"></b><i data-icon="chevron-down" class="chev"></i></button>
+          <div class="popover popover-wide" id="popSource" hidden>
+            <div class="pop-title">De onde vêm as imagens</div>
+            <div class="check-list" id="sourceList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <div class="segmented segmented-icons" id="density" aria-label="Tamanho das miniaturas">
+        <span class="segmented-thumb" aria-hidden="true"></span>
+        <button data-density="large" aria-selected="true" data-tip="Miniaturas grandes"><i data-icon="grid-large"></i></button>
+        <button data-density="small" aria-selected="false" data-tip="Miniaturas pequenas"><i data-icon="grid-small"></i></button>
+      </div>
+
+      <div class="pop-anchor">
+        <button class="icon-btn icon-btn-outline" id="btnMore" data-tip="Mais ações" aria-label="Mais ações"><i data-icon="more"></i></button>
+        <div class="popover popover-menu popover-right" id="popMore" hidden>
+          <button class="menu-item" data-action="select-all"><i data-icon="check-square"></i>Selecionar todas</button>
+          <button class="menu-item" data-action="select-none"><i data-icon="square"></i>Desmarcar todas</button>
+          <button class="menu-item" data-action="select-invert"><i data-icon="invert"></i>Inverter seleção</button>
+          <div class="menu-sep"></div>
+          <button class="menu-item" data-action="copy-links"><i data-icon="copy"></i>Copiar links</button>
+          <button class="menu-item" data-action="export"><i data-icon="code"></i>Exportar código (HTML/BBCode)</button>
+          <div class="menu-sep"></div>
+          <button class="menu-item" data-action="clear"><i data-icon="trash"></i>Limpar resultados</button>
+        </div>
+      </div>
+
+      <div class="pop-anchor">
+        <div class="dest" id="dest">
+          <button class="dest-main" id="destMain" aria-haspopup="true"><i data-icon="folder"></i><span class="dest-label"><span id="destRoot"></span><span class="dest-sub" id="destSub"></span></span><i data-icon="chevron-down" class="chev"></i></button>
+          <button class="dest-open" id="destOpen" data-tip="Abrir pasta raiz" aria-label="Abrir pasta raiz"><i data-icon="external"></i></button>
+        </div>
+        <div class="popover popover-right popover-dest" id="popDest" hidden>
+          <div class="pop-title">Onde salvar</div>
+          <div class="dest-root">
+            <span class="dest-root-icon"><i data-icon="folder"></i></span>
+            <div class="dest-root-text"><span id="destRootPath"></span><small>Pasta raiz</small></div>
+            <button class="btn btn-ghost btn-sm" id="destPick">Alterar</button>
+          </div>
+          <div class="segmented segmented-full" id="subfolderMode">
+            <span class="segmented-thumb" aria-hidden="true"></span>
+            <button data-value="title">Pasta por página</button>
+            <button data-value="host">Por site</button>
+            <button data-value="none">Tudo na raiz</button>
+          </div>
+          <div class="dest-groups" id="destGroups"></div>
+          <div class="pop-hint" id="destHint"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="download"><i data-icon="download"></i><span id="downloadLabel">Baixar</span></button>
+    </section>
+
+    <section class="gallery-wrap" id="galleryWrap">
+      <div class="gallery" id="gallery" data-density="large"></div>
+      <div class="empty" id="empty"></div>
+    </section>
+  </main>
+
+  <div class="activity-pill" id="pill" hidden>
+    <span class="spinner" aria-hidden="true"></span>
+    <div class="pill-body">
+      <div class="pill-text" id="pillText"></div>
+      <div class="pill-bar"><div id="pillBar"></div></div>
+    </div>
+    <span class="pill-count" id="pillCount"></span>
+    <button class="pill-cancel" id="pillCancel">Cancelar</button>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <div class="scrim" id="scrim" hidden></div>
+
+  <aside class="drawer" id="settings" hidden aria-label="Configurações">
+    <header class="drawer-head">
+      <h2>Configurações</h2>
+      <button class="icon-btn" data-close aria-label="Fechar"><i data-icon="x"></i></button>
+    </header>
+    <div class="drawer-body">
+      <section class="set-group">
+        <h3><i data-icon="sparkles"></i>Qualidade</h3>
+        <div class="set-row">
+          <div><div class="set-label">Maior resolução automática</div><div class="set-desc">Mede cada imagem e procura versões maiores (atributos de zoom, srcset, padrões de CDN, WordPress e miniaturas).</div></div>
+          <label class="switch"><input type="checkbox" data-setting="bestVersion"><span></span></label>
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3><i data-icon="compass"></i>Descoberta</h3>
+        <div class="set-row">
+          <div><div class="set-label">Abrir páginas de imagem</div><div class="set-desc">Segue cada miniatura até a página dela para achar a foto em tamanho cheio.</div></div>
+          <label class="switch"><input type="checkbox" data-setting="followSecondary"><span></span></label>
+        </div>
+        <div class="set-row set-sub">
+          <div class="set-label">Máximo de páginas de imagem</div>
+          <input class="num" type="number" min="0" max="5000" data-setting="maxSecondary">
+        </div>
+        <div class="set-row">
+          <div><div class="set-label">Seguir paginação</div><div class="set-desc">Fóruns e galerias com várias páginas (“próxima”, “›”).</div></div>
+          <label class="switch"><input type="checkbox" data-setting="paginate"><span></span></label>
+        </div>
+        <div class="set-row set-sub">
+          <div class="set-label">Máximo de páginas por link</div>
+          <input class="num" type="number" min="1" max="500" data-setting="maxPages">
+        </div>
+        <div class="set-row">
+          <div><div class="set-label">Procurar em scripts e dados</div><div class="set-desc">Encontra imagens citadas no código e em JSON da página.</div></div>
+          <label class="switch"><input type="checkbox" data-setting="scripts"><span></span></label>
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3><i data-icon="globe"></i>Páginas em JavaScript</h3>
+        <div class="set-row set-col">
+          <div><div class="set-label">Navegador invisível</div><div class="set-desc" id="browserStatus">Verificando…</div></div>
+          <div class="segmented segmented-full" id="renderMode">
+            <span class="segmented-thumb" aria-hidden="true"></span>
+            <button data-value="auto">Automático</button>
+            <button data-value="always">Sempre</button>
+            <button data-value="never">Nunca</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div><div class="set-label">Rolar e clicar em “carregar mais”</div><div class="set-desc">Para rolagem infinita e botões de mais resultados.</div></div>
+          <label class="switch"><input type="checkbox" data-setting="scroll"><span></span></label>
+        </div>
+        <div class="set-row set-sub">
+          <div class="set-label">Máximo de rolagens por página</div>
+          <input class="num" type="number" min="0" max="100" data-setting="maxScrolls">
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3><i data-icon="download"></i>Downloads</h3>
+        <div class="set-row set-col">
+          <div class="set-label">Pasta de destino</div>
+          <div class="folder-field">
+            <span id="folderPath"></span>
+            <button class="btn btn-ghost btn-sm" id="folderChange">Alterar</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div><div class="set-label">Subpastas</div><div class="set-desc">Com “uma por página”, o nome vem do título da página e pode ser editado antes de baixar.</div></div>
+          <div class="select select-sm">
+            <select data-setting="subfolder">
+              <option value="title">Uma por página</option>
+              <option value="host">Uma por site</option>
+              <option value="none">Nenhuma</option>
+            </select>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Pular arquivos que já existem</div>
+          <label class="switch"><input type="checkbox" data-setting="skipExisting"><span></span></label>
+        </div>
+        <div class="set-row set-col">
+          <div class="set-label-row"><span class="set-label">Downloads simultâneos</span><output id="concurrencyOut"></output></div>
+          <input type="range" min="1" max="50" data-setting="concurrency">
+        </div>
+        <div class="set-row">
+          <div><div class="set-label">Validar e tentar de novo</div><div class="set-desc">Confere cada arquivo e baixa de novo se vier corrompido.</div></div>
+          <label class="switch"><input type="checkbox" data-setting="validate"><span></span></label>
+        </div>
+        <div class="set-row set-sub">
+          <div class="set-label">Novas tentativas</div>
+          <input class="num" type="number" min="0" max="10" data-setting="retries">
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3><i data-icon="type"></i>Nomes dos arquivos</h3>
+        <div class="set-row set-col">
+          <input class="text" type="text" spellcheck="false" data-setting="template">
+          <div class="token-row" id="tokens">
+            <button class="token" data-token="{name}">nome original</button>
+            <button class="token" data-token="{n}">número</button>
+            <button class="token" data-token="{title}">título da página</button>
+            <button class="token" data-token="{host}">site</button>
+          </div>
+          <div class="set-desc" id="templatePreview"></div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Numerar a partir de</div>
+          <input class="num" type="number" min="0" data-setting="seqStart">
+        </div>
+        <div class="set-row">
+          <div class="set-label">Dígitos</div>
+          <input class="num" type="number" min="0" max="8" data-setting="seqPad">
+        </div>
+      </section>
+      <div class="drawer-foot" id="versionInfo"></div>
+    </div>
+  </aside>
+
+  <aside class="drawer" id="activity" hidden aria-label="Atividade">
+    <header class="drawer-head">
+      <h2>Atividade</h2>
+      <button class="btn btn-ghost btn-sm" id="activityClear">Limpar</button>
+      <button class="icon-btn" data-close aria-label="Fechar"><i data-icon="x"></i></button>
+    </header>
+    <div class="drawer-body">
+      <ol class="log" id="log"></ol>
+      <div class="log-empty" id="logEmpty">Nada por aqui ainda.</div>
+    </div>
+  </aside>
+
+  <div class="lightbox" id="lightbox" hidden>
+    <div class="lb-top">
+      <div class="lb-title" id="lbTitle"></div>
+      <div class="lb-actions">
+        <button class="icon-btn" id="lbSelect" data-tip="Selecionar (espaço)"><i data-icon="check-circle"></i></button>
+        <button class="icon-btn" id="lbCopy" data-tip="Copiar link"><i data-icon="copy"></i></button>
+        <button class="icon-btn" id="lbSource" data-tip="Abrir página de origem"><i data-icon="external"></i></button>
+        <button class="icon-btn" id="lbClose" data-tip="Fechar (Esc)"><i data-icon="x"></i></button>
+      </div>
+    </div>
+    <button class="lb-nav lb-prev" id="lbPrev" aria-label="Anterior"><i data-icon="chevron-left"></i></button>
+    <div class="lb-stage"><img id="lbImg" alt=""><div class="lb-loading" id="lbLoading"><span class="spinner"></span></div></div>
+    <button class="lb-nav lb-next" id="lbNext" aria-label="Próxima"><i data-icon="chevron-right"></i></button>
+    <div class="lb-info" id="lbInfo"></div>
+  </div>
+
+  <dialog class="modal" id="authDialog">
+    <form method="dialog">
+      <div class="modal-icon"><i data-icon="lock"></i></div>
+      <h3>Este site pede usuário e senha</h3>
+      <p class="modal-sub" id="authWhere"></p>
+      <label class="field">Usuário<input type="text" id="authUser" autocomplete="username"></label>
+      <label class="field">Senha<input type="password" id="authPass" autocomplete="current-password"></label>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" value="cancel" formnovalidate>Pular este site</button>
+        <button class="btn btn-primary" value="ok">Entrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal modal-wide" id="exportDialog">
+    <form method="dialog">
+      <h3>Exportar código da galeria</h3>
+      <p class="modal-sub" id="exportInfo"></p>
+      <div class="segmented" id="exportFormat">
+        <span class="segmented-thumb" aria-hidden="true"></span>
+        <button type="button" data-value="html" aria-selected="true">HTML</button>
+        <button type="button" data-value="bbcode" aria-selected="false">BBCode</button>
+      </div>
+      <textarea class="code" id="exportText" readonly></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" value="close">Fechar</button>
+        <button type="button" class="btn btn-primary" id="exportCopy"><i data-icon="copy"></i>Copiar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="drop-overlay" id="dropOverlay" hidden><div><i data-icon="link"></i><span>Solte o link para escanear</span></div></div>
+</div>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

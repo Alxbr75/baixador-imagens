@@ -1,0 +1,66 @@
+{
+  "name": "baixador-imagens",
+  "productName": "Baixador de Imagens",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Baixador de imagens em massa com maior resolução automática",
+  "author": "Baixador de Imagens",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node build/make-icon.js",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "playwright-core": "1.64.0"
+  },
+  "devDependencies": {
+    "electron": "44.7.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.baixador.imagens",
+    "productName": "Baixador de Imagens",
+    "copyright": "Baixador de Imagens",
+    "files": [
+      "main.js",
+      "preload.js",
+      "core.js",
+      "render.js",
+      "app/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/playwright-core/**"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Baixador de Imagens",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Baixador-de-Imagens-Setup-${version}.exe"
+    }
+  }
+}

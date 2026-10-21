@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baixador de Imagens</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e1014;
+    --panel: #161920;
+    --panel-2: #1c2029;
+    --border: #272c37;
+    --border-hover: #3a4150;
+    --text: #e6e8ee;
+    --muted: #8a92a6;
+    --accent: #5b8cff;
+    --ok: #3fb950;
+    --warn: #d29922;
+    --danger: #f85149;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), #9b6bff); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  header .counts { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+  main { padding: 16px 20px 130px; display: grid; gap: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .panels { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; }
+  .panel h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  .row + .row { margin-top: 10px; }
+  .grow { flex: 1 1 220px; }
+  label.field { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+  textarea, input[type=text], input[type=password], input[type=number], select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; outline: none; }
+  textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+  textarea { width: 100%; min-height: 76px; resize: vertical; font-family: Consolas, ui-monospace, monospace; font-size: 13px; }
+  input[type=number] { width: 90px; }
+  input[type=text], input[type=password] { width: 100%; }
+  .check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; user-select: none; }
+  input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
+  .group-title { color: var(--muted); font-size: 12px; margin-right: 2px; }
+  button { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--border-hover); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.1); }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .hint { color: var(--muted); font-size: 12px; }
+  code { background: var(--panel-2); border: 1px solid var(--border); border-radius: 5px; padding: 0 4px; font-size: 12px; }
+  details.panel > summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  details.panel[open] > summary { margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .card { position: relative; display: grid; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color .12s; }
+  .card:hover { border-color: var(--border-hover); }
+  .card:has(.pick:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .card .pick { position: absolute; top: 8px; left: 8px; z-index: 2; }
+  .card .thumb { height: 150px; display: grid; place-items: center; background-color: #12151b; background-image: linear-gradient(45deg, #181c24 25%, transparent 25%, transparent 75%, #181c24 75%), linear-gradient(45deg, #181c24 25%, transparent 25%, transparent 75%, #181c24 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+  .card .thumb img { max-width: 100%; max-height: 150px; object-fit: contain; display: block; }
+  .card .play { font-size: 34px; color: var(--muted); }
+  .card .meta { display: grid; gap: 2px; padding: 7px 9px 9px; font-size: 12px; }
+  .card .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .dims { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .card .up { color: var(--ok); font-weight: 600; }
+  .card .badge { position: absolute; top: 7px; right: 7px; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: rgba(0,0,0,.65); color: var(--muted); }
+  .card .badge.linked, .card .badge.hosted { color: #9fbcff; }
+  .card .badge.video { color: #f0a2ff; }
+  .card .badge.search { color: #8fe0b0; }
+  .card.working { border-color: var(--warn); }
+  .card.saved { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok) inset; }
+  .card.saved .dims::after { content: " · salva"; color: var(--ok); }
+  .card.skipped .dims::after { content: " · já existia"; color: var(--warn); }
+  .card.error { border-color: var(--danger); }
+  .card.error .dims::after { content: " · erro"; color: var(--danger); }
+  .empty { color: var(--muted); text-align: center; padding: 50px 10px; border: 1px dashed var(--border); border-radius: var(--radius); }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 10px 20px; display: grid; gap: 6px; z-index: 5; }
+  .progress { height: 6px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+  .status { display: flex; gap: 12px; color: var(--muted); font-size: 12px; }
+  .status .msg { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status .msg.error { color: var(--danger); }
+  details.log { font-size: 12px; color: var(--muted); }
+  details.log ul { margin: 6px 0 0; padding-left: 18px; max-height: 140px; overflow: auto; }
+  details.log li.error { color: var(--danger); }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 18px; width: min(560px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgba(0, 0, 0, .6); }
+  dialog h3 { margin: 0 0 10px; font-size: 15px; }
+  dialog form { display: grid; gap: 12px; }
+  dialog .actions { display: flex; justify-content: flex-end; gap: 8px; }
+  #exportText { min-height: 220px; }
+  @media (max-width: 860px) { .panels { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { header, main, footer { padding-left: 16px; padding-right: 16px; } .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">⇣</div>
+  <h1>Baixador de Imagens</h1>
+  <span class="counts" id="counts"></span>
+</header>
+
+<main>
+  <div class="panels">
+    <section class="panel">
+      <h2>Páginas e galerias</h2>
+      <textarea id="urls" placeholder="https://exemplo.com/galeria&#10;https://forum.exemplo.com/topico/123&#10;https://exemplo.com/fotos/img[001-050].jpg"></textarea>
+      <div class="row">
+        <button class="primary" id="scan">Escanear</button>
+        <span class="hint">Uma URL por linha. Intervalos como <code>[001-100]</code> ou <code>[a-z]</code> geram sequências. Ctrl+Enter escaneia.</span>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Buscar imagens</h2>
+      <div class="row">
+        <label class="field grow">Termo<input type="text" id="query" placeholder="ex.: aurora boreal"></label>
+      </div>
+      <div class="row">
+        <label class="field">Buscador
+          <select id="provider" data-setting>
+            <option value="bing">Bing</option>
+            <option value="duckduckgo">DuckDuckGo</option>
+          </select>
+        </label>
+        <label class="field">Páginas<input type="number" id="searchPages" data-setting min="1" max="10" value="2"></label>
+        <button class="primary" id="search" style="align-self:end">Buscar</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="row">
+      <span class="group-title">Origem:</span>
+      <label class="check"><input type="checkbox" data-kind="linked" data-setting checked> Link direto</label>
+      <label class="check"><input type="checkbox" data-kind="hosted" data-setting checked> Página da imagem</label>
+      <label class="check"><input type="checkbox" data-kind="embedded" data-setting checked> Exibida na página</label>
+      <label class="check"><input type="checkbox" data-kind="script" data-setting checked> Em scripts</label>
+      <label class="check"><input type="checkbox" data-kind="search" data-setting checked> Busca</label>
+      <label class="check"><input type="checkbox" data-kind="meta" data-setting> Capa (og:image)</label>
+    </div>
+    <div class="row">
+      <span class="group-title">Tipo:</span>
+      <label class="check"><input type="checkbox" data-type="jpg" data-setting checked> JPG</label>
+      <label class="check"><input type="checkbox" data-type="png" data-setting checked> PNG</label>
+      <label class="check"><input type="checkbox" data-type="gif" data-setting checked> GIF</label>
+      <label class="check"><input type="checkbox" data-type="webp" data-setting checked> WebP</label>
+      <label class="check"><input type="checkbox" data-type="other" data-setting checked> Outros</label>
+      <label class="check"><input type="checkbox" data-type="video" data-setting checked> Vídeos</label>
+      <label class="field">Largura mín. (px)<input type="number" id="minW" data-setting min="0" step="50" value="300"></label>
+      <label class="field">Altura mín. (px)<input type="number" id="minH" data-setting min="0" step="50" value="300"></label>
+    </div>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="bestVersion" data-setting checked> <b>Maior resolução</b>: medir cada imagem e testar versões maiores (atributos de zoom, srcset, padrões de CDN/WordPress/miniaturas)</label>
+    </div>
+    <div class="row">
+      <label class="field grow">Salvar em<input type="text" id="folder" data-setting spellcheck="false"></label>
+      <label class="field">Subpasta
+        <select id="subfolder" data-setting>
+          <option value="none">Nenhuma</option>
+          <option value="title">Título da página</option>
+          <option value="host">Nome do site</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="skipExisting" data-setting checked> Pular arquivos que já existem</label>
+    </div>
+  </section>
+
+  <details class="panel" id="advanced">
+    <summary>Opções avançadas</summary>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="followSecondary" data-setting checked> Abrir páginas de imagem (miniatura → página → imagem cheia)</label>
+      <label class="field">Máx. de páginas de imagem<input type="number" id="maxSecondary" data-setting min="0" max="5000" value="500"></label>
+    </div>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="paginate" data-setting> Seguir paginação (fóruns e galerias com várias páginas)</label>
+      <label class="field">Máx. de páginas por URL<input type="number" id="maxPages" data-setting min="1" max="500" value="10"></label>
+    </div>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="scripts" data-setting checked> Procurar imagens em scripts/JSON (galerias em JavaScript, rolagem infinita)</label>
+    </div>
+    <div class="row">
+      <label class="field">Navegador (páginas em JavaScript)
+        <select id="render" data-setting>
+          <option value="auto">Automático: quando a página vier vazia, for app JS ou tiver rolagem infinita</option>
+          <option value="always">Sempre abrir no navegador</option>
+          <option value="never">Nunca (só leitura simples, mais rápido)</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="scroll" data-setting checked> Rolar até o fim e clicar em “carregar mais”</label>
+      <label class="field">Máx. de rolagens por página<input type="number" id="maxScrolls" data-setting min="0" max="100" value="15"></label>
+    </div>
+    <div class="row"><span class="hint" id="browserStatus">Verificando navegador…</span></div>
+    <div class="row">
+      <label class="field">Downloads simultâneos (até 50)<input type="number" id="concurrency" data-setting min="1" max="50" value="8"></label>
+      <label class="field">Novas tentativas<input type="number" id="retries" data-setting min="0" max="10" value="3"></label>
+      <label class="check"><input type="checkbox" id="validate" data-setting checked> Validar cada arquivo e tentar de novo se vier corrompido</label>
+    </div>
+    <div class="row">
+      <label class="field grow">Modelo de nome
+        <input type="text" id="template" data-setting value="{name}" spellcheck="false">
+      </label>
+      <label class="field">Começar em<input type="number" id="seqStart" data-setting min="0" value="1"></label>
+      <label class="field">Dígitos<input type="number" id="seqPad" data-setting min="0" max="8" value="3"></label>
+    </div>
+    <div class="row">
+      <span class="hint">Variáveis: <code>{name}</code> nome original · <code>{n}</code> número em sequência · <code>{title}</code> título da página · <code>{host}</code> site. Ex.: <code>{title} {n}</code> gera “Minha galeria 001.jpg”.</span>
+    </div>
+  </details>
+
+  <section class="row">
+    <button id="selAll">Selecionar visíveis</button>
+    <button id="selNone">Desmarcar todas</button>
+    <button id="selInvert">Inverter</button>
+    <span style="flex:1"></span>
+    <button id="export">Exportar código</button>
+    <button id="openFolder">Abrir pasta</button>
+    <button class="danger" id="cancel" disabled>Cancelar</button>
+    <button class="primary" id="download" disabled>Baixar selecionadas</button>
+  </section>
+
+  <section id="grid" class="grid"></section>
+  <div id="empty" class="empty">Cole URLs de páginas ou faça uma busca para começar.</div>
+</main>
+
+<footer>
+  <div class="progress"><div id="bar"></div></div>
+  <div class="status"><span class="msg" id="msg">Pronto.</span><span id="progressText"></span></div>
+  <details class="log"><summary>Registro</summary><ul id="log"></ul></details>
+</footer>
+
+<dialog id="authDialog">
+  <form method="dialog">
+    <h3>Este site pede usuário e senha</h3>
+    <div class="hint" id="authWhere"></div>
+    <label class="field">Usuário<input type="text" id="authUser" autocomplete="username"></label>
+    <label class="field">Senha<input type="password" id="authPass" autocomplete="current-password"></label>
+    <div class="actions">
+      <button value="cancel" formnovalidate>Pular este site</button>
+      <button value="ok" class="primary">Entrar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="exportDialog">
+  <form method="dialog">
+    <h3>Exportar código da galeria</h3>
+    <div class="row">
+      <label class="field">Formato
+        <select id="exportFormat">
+          <option value="html">HTML</option>
+          <option value="bbcode">BBCode (fóruns)</option>
+        </select>
+      </label>
+      <span class="hint" id="exportInfo"></span>
+    </div>
+    <textarea id="exportText" readonly></textarea>
+    <div class="actions">
+      <button value="close">Fechar</button>
+      <button type="button" class="primary" id="exportCopy">Copiar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+'use strict';
+const APP = __CONFIG__;
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const state = { items: [], byUrl: new Map(), busy: false, cancel: false, authPrompts: new Map(), skippedOrigins: new Set() };
+const SETTINGS_KEY = 'baixador-imagens.settings.v2';
+const KIND_LABEL = { linked: 'link', hosted: 'pág. da imagem', embedded: 'na página', script: 'script', meta: 'capa', video: 'vídeo', search: 'busca' };
+const KIND_RANK = { linked: 5, hosted: 5, video: 5, search: 4, embedded: 3, meta: 2, script: 1 };
+
+// ---------- configurações (ficam no navegador) ----------
+
+const settingKey = (el) => el.id || (el.dataset.kind ? 'kind:' + el.dataset.kind : 'type:' + el.dataset.type);
+
+function loadSettings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch {}
+  for (const el of $$('[data-setting]')) {
+    const value = saved[settingKey(el)];
+    if (value == null) continue;
+    if (el.type === 'checkbox') el.checked = value; else el.value = value;
+  }
+  if (!$('#folder').value) $('#folder').value = APP.defaultFolder;
+}
+
+function saveSettings() {
+  const data = {};
+  for (const el of $$('[data-setting]')) data[settingKey(el)] = el.type === 'checkbox' ? el.checked : el.value;
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch {}
+}
+
+const num = (id, min, max, fallback) => Math.min(max, Math.max(min, Number.isFinite(Number($(id).value)) && $(id).value !== '' ? Number($(id).value) : fallback));
+
+// ---------- comunicação com o servidor local ----------
+
+async function api(path, body) {
+  const res = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json', 'x-token': APP.token }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { auth: data.auth });
+  return data;
+}
+
+// Repete a chamada depois de pedir usuário e senha quando o site exige autenticação.
+async function apiWithAuth(path, body) {
+  let result = await api(path, body);
+  if (result.needsAuth) {
+    const ok = await askCredentials(result.needsAuth);
+    result = ok ? await api(path, body) : { error: 'autenticação não informada' };
+    if (result.needsAuth) result = { error: 'usuário ou senha recusados' };
+  }
+  return result;
+}
+
+function askCredentials({ origin, realm }) {
+  if (state.skippedOrigins.has(origin)) return Promise.resolve(false);
+  if (state.authPrompts.has(origin)) return state.authPrompts.get(origin);
+  const prompt = new Promise((resolve) => {
+    const dialog = $('#authDialog');
+    $('#authWhere').textContent = realm ? `${origin} — “${realm}”` : origin;
+    $('#authUser').value = '';
+    $('#authPass').value = '';
+    dialog.addEventListener('close', async () => {
+      if (dialog.returnValue !== 'ok') {
+        state.skippedOrigins.add(origin);
+        return resolve(false);
+      }
+      try {
+        await api('/api/auth', { origin, username: $('#authUser').value, password: $('#authPass').value });
+        resolve(true);
+      } catch {
+        resolve(false);
+      }
+    }, { once: true });
+    dialog.showModal();
+  }).finally(() => state.authPrompts.delete(origin));
+  state.authPrompts.set(origin, prompt);
+  return prompt;
+}
+
+// ---------- status ----------
+
+function setStatus(text, isError = false) {
+  $('#msg').textContent = text;
+  $('#msg').classList.toggle('error', isError);
+}
+
+function log(text, isError = false) {
+  const li = document.createElement('li');
+  li.textContent = text;
+  if (isError) li.className = 'error';
+  $('#log').prepend(li);
+}
+
+function setProgress(done, total, label = '') {
+  $('#bar').style.width = total ? `${Math.min(100, (done / total) * 100)}%` : '0';
+  $('#progressText').textContent = total ? `${label}${done}/${total}` : '';
+}
+
+function setBusy(busy) {
+  state.busy = busy;
+  for (const id of ['#scan', '#search']) $(id).disabled = busy;
+  $('#cancel').disabled = !busy;
+  updateCounts();
+}
+
+// ---------- itens e filtros ----------
+
+function typeOf(url, kind) {
+  const ext = (new URL(url).pathname.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
+  if (kind === 'video' || ['mp4', 'm4v', 'webm', 'mkv', 'avi', 'wmv', 'mpg', 'mpeg', 'mov', 'flv', '3gp', 'ogv'].includes(ext)) return 'video';
+  if (ext === 'jpg' || ext === 'jpeg' || ext === 'jfif') return 'jpg';
+  return ['png', 'gif', 'webp'].includes(ext) ? ext : 'other';
+}
+
+function fileName(url) {
+  const last = new URL(url).pathname.split('/').filter(Boolean).pop() || new URL(url).hostname;
+  try { return decodeURIComponent(last); } catch { return last; }
+}
+
+function filters() {
+  return {
+    kinds: new Set($$('[data-kind]').filter((b) => b.checked).map((b) => b.dataset.kind)),
+    types: new Set($$('[data-type]').filter((b) => b.checked).map((b) => b.dataset.type)),
+    minW: Number($('#minW').value) || 0,
+    minH: Number($('#minH').value) || 0,
+  };
+}
+
+function passes(item, f) {
+  if (!f.kinds.has(item.kind === 'video' ? item.origin : item.kind) || !f.types.has(item.type)) return false;
+  if (item.status === 'failed') return false;
+  // Vídeos e imagens ainda carregando (ou sem dimensão, como SVG) não passam pelo filtro de tamanho.
+  if (item.type !== 'video' && item.w && (item.w < f.minW || item.h < f.minH)) return false;
+  return true;
+}
+
+function applyFilters() {
+  const f = filters();
+  for (const item of state.items) item.el.hidden = !passes(item, f);
+  updateCounts();
+}
+
+function visibleItems() {
+  const f = filters();
+  return state.items.filter((i) => passes(i, f));
+}
+
+function updateCounts() {
+  const visible = visibleItems();
+  const selected = visible.filter((i) => i.checked).length;
+  $('#counts').textContent = state.items.length ? `${visible.length} visíveis · ${selected} selecionadas · ${state.items.length} encontradas` : '';
+  $('#download').disabled = state.busy || !selected;
+  $('#export').disabled = !visible.length;
+  $('#empty').hidden = state.items.length > 0;
+}
+
+const proxied = (url, referer) => `/api/thumb?t=${APP.token}&u=${encodeURIComponent(url)}&r=${encodeURIComponent(referer || '')}`;
+
+const formatBytes = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : n ? `${n} B` : '');
+
+function makeCard(item) {
+  const card = document.createElement('label');
+  card.className = 'card';
+  card.innerHTML = '<input type="checkbox" class="pick"><div class="thumb"></div><div class="meta"><span class="name"></span><span class="dims"></span></div><span class="badge"></span>';
+  const box = card.querySelector('.pick');
+  box.checked = item.checked;
+  box.addEventListener('change', () => { item.checked = box.checked; updateCounts(); });
+  item.box = box;
+  item.el = card;
+  item.thumbEl = card.querySelector('.thumb');
+  item.dimsEl = card.querySelector('.dims');
+  item.nameEl = card.querySelector('.name');
+  updateBadge(item);
+  showPreview(item);
+  return card;
+}
+
+function updateLabels(item) {
+  item.el.title = item.url;
+  item.nameEl.textContent = item.nameHint || fileName(item.url);
+  const dims = item.dimsEl;
+  dims.replaceChildren();
+  if (item.type === 'video') dims.textContent = 'vídeo';
+  else if (item.measuring) dims.textContent = 'medindo…';
+  else if (item.unverified && !item.w) dims.textContent = 'original (site limitou a medição)';
+  else if (item.w && item.h) {
+    dims.textContent = [`${item.w} × ${item.h}`, formatBytes(item.bytes), item.unverified ? 'declarado' : ''].filter(Boolean).join(' · ');
+    if (item.upgraded) {
+      const up = document.createElement('span');
+      up.className = 'up';
+      up.textContent = ' ↑ maior';
+      up.title = item.originalSize ? `Versão maior encontrada (a da página tinha ${item.originalSize})` : 'Versão maior encontrada';
+      dims.append(up);
+    }
+  } else dims.textContent = item.status === 'ok' ? 'sem dimensão' : 'carregando…';
+}
+
+function refreshItem(item) {
+  item.el.hidden = !passes(item, filters());
+  updateCounts();
+}
+
+// Mostra a miniatura (a menor imagem disponível). Só mede no navegador quando o servidor não conseguiu medir.
+function showPreview(item) {
+  updateLabels(item);
+  const known = item.w && item.h;
+  const display = item.type === 'video' ? item.thumb
+    : item.thumb && (known || item.measuring) ? item.thumb
+    : item.measuring ? null : item.url;
+  const box = item.thumbEl;
+  if (!display) {
+    box.innerHTML = `<span class="play">${item.type === 'video' ? '▶' : '…'}</span>`;
+    if (item.type === 'video') item.status = 'ok';
+    return;
+  }
+  if (box.dataset.src === display) return;
+  box.dataset.src = display;
+  const img = document.createElement('img');
+  img.alt = '';
+  img.decoding = 'async';
+  box.replaceChildren(img);
+  const measureHere = display === item.url && !known && !item.measuring && item.type !== 'video';
+  img.addEventListener('load', () => {
+    if (measureHere) {
+      item.w = img.naturalWidth;
+      item.h = img.naturalHeight;
+    }
+    if (!item.measuring) item.status = 'ok';
+    updateLabels(item);
+    refreshItem(item);
+  });
+  img.addEventListener('error', () => {
+    if (measureHere) {
+      item.status = 'failed';
+      return refreshItem(item);
+    }
+    // Miniatura indisponível não invalida o arquivo em si.
+    box.innerHTML = `<span class="play">${item.type === 'video' ? '▶' : '🖼'}</span>`;
+  });
+  img.src = proxied(display, item.page);
+}
+
+function updateBadge(item) {
+  const badge = item.el.querySelector('.badge');
+  badge.className = 'badge ' + item.kind;
+  badge.textContent = KIND_LABEL[item.kind];
+}
+
+// Junta informações de outra ocorrência da mesma imagem; a origem mais forte vence (ex.: página da imagem > na página).
+function mergeFound(target, found) {
+  if ((KIND_RANK[found.kind] || 0) > (KIND_RANK[target.kind] || 0)) {
+    target.kind = found.kind;
+    if (found.kind !== 'video') target.origin = found.kind;
+    updateBadge(target);
+  }
+  for (const key of ['thumb', 'nameHint', 'title', 'declared']) if (found[key] && !target[key]) target[key] = found[key];
+  if (found.alternates?.length) target.alternates = [...new Set([...(target.alternates || []), ...found.alternates])];
+}
+
+// Adiciona sem duplicar.
+function addItem(found) {
+  const existing = state.byUrl.get(found.url);
+  if (existing) return mergeFound(existing, found);
+  const type = typeOf(found.url, found.kind);
+  const item = {
+    ...found,
+    type,
+    // Vídeos são filtrados pelo tipo "Vídeos"; a origem usada no filtro é a de quem os trouxe.
+    origin: found.kind === 'video' ? (found.via === 'hosted' ? 'hosted' : 'linked') : found.kind,
+    checked: true,
+    status: 'loading',
+    w: found.w || 0,
+    h: found.h || 0,
+    measuring: $('#bestVersion').checked && type !== 'video',
+  };
+  state.items.push(item);
+  state.byUrl.set(item.url, item);
+  $('#grid').append(makeCard(item));
+  refreshItem(item);
+}
+
+function removeItem(item) {
+  item.el.remove();
+  state.items.splice(state.items.indexOf(item), 1);
+  if (state.byUrl.get(item.url) === item) state.byUrl.delete(item.url);
+}
+
+// Aplica o resultado da medição: troca pela versão maior e junta itens que eram a mesma imagem em tamanhos diferentes.
+function applyBest(item, r) {
+  item.measuring = false;
+  if (state.byUrl.get(item.url) !== item) return false;
+  if (!r || r.error || !r.measured) {
+    showPreview(item);
+    return false;
+  }
+  const oldUrl = item.url;
+  let target = item;
+  if (r.url !== oldUrl) {
+    const other = state.byUrl.get(r.url);
+    if (other) {
+      removeItem(item);
+      mergeFound(other, { ...item, thumb: item.thumb || oldUrl });
+      target = other;
+    } else {
+      state.byUrl.delete(oldUrl);
+      item.url = r.url;
+      item.type = typeOf(r.url, item.kind);
+      item.thumb = item.thumb || oldUrl;
+      state.byUrl.set(r.url, item);
+      item.upgraded = true;
+      if (r.original) item.originalSize = `${r.original.w} × ${r.original.h}`;
+    }
+    // A imagem veio de uma página de imagem: ela passa a ser o referer do download.
+    if (r.referer) target.page = r.referer;
+  }
+  target.w = r.w;
+  target.h = r.h;
+  target.bytes = r.bytes;
+  target.unverified = !!r.unverified;
+  target.status = 'ok';
+  showPreview(target);
+  refreshItem(target);
+  return r.url !== oldUrl;
+}
+
+async function optimizeSizes() {
+  const queue = state.items.filter((i) => i.measuring);
+  if (!queue.length) return '';
+  const total = queue.length;
+  let done = 0;
+  let upgraded = 0;
+  await drain(queue, 6, async (item) => {
+    try {
+      const r = await api('/api/best', { url: item.url, referer: item.page, alternates: item.alternates || [], thumb: item.thumb, declared: item.declared });
+      if (applyBest(item, r)) upgraded++;
+    } catch {
+      applyBest(item, null);
+    } finally {
+      done++;
+      setProgress(done, total, 'medindo ');
+      setStatus(`Procurando a maior versão de cada imagem: ${done}/${total}${upgraded ? ` · ${upgraded} trocada(s) por uma versão maior` : ''}`);
+    }
+  });
+  for (const item of state.items) {
+    if (!item.measuring) continue;
+    item.measuring = false;
+    showPreview(item);
+  }
+  return upgraded ? ` · ${upgraded} trocada(s) por uma versão maior` : '';
+}
+
+function resetResults() {
+  state.items = [];
+  state.byUrl = new Map();
+  state.skippedOrigins = new Set();
+  $('#grid').replaceChildren();
+  setProgress(0, 0);
+  updateCounts();
+}
+
+// ---------- fila com N tarefas em paralelo ----------
+
+function drain(queue, workers, handler) {
+  return new Promise((resolve) => {
+    let active = 0;
+    const pump = () => {
+      if (state.cancel) queue.length = 0;
+      if (!queue.length && !active) return resolve();
+      while (active < workers && queue.length) {
+        const job = queue.shift();
+        active++;
+        handler(job)
+          .catch((err) => log(err.message, true))
+          .finally(() => { active--; pump(); });
+      }
+    };
+    pump();
+  });
+}
+
+// ---------- escanear páginas ----------
+
+function normalizeUrl(raw) {
+  const value = raw.trim();
+  if (!value) return null;
+  return /^https?:\/\//i.test(value) ? value : 'https://' + value;
+}
+
+async function scan() {
+  const inputs = [...new Set($('#urls').value.split(/\s+/).map(normalizeUrl).filter(Boolean))];
+  if (!inputs.length) return setStatus('Informe ao menos uma URL.', true);
+  saveSettings();
+  resetResults();
+  setBusy(true);
+  state.cancel = false;
+  const options = {
+    followSecondary: $('#followSecondary').checked,
+    maxSecondary: num('#maxSecondary', 0, 5000, 500),
+    paginate: $('#paginate').checked,
+    maxPages: num('#maxPages', 1, 500, 10),
+    scripts: $('#scripts').checked,
+    render: $('#render').value,
+    scroll: $('#scroll').checked,
+    maxScrolls: num('#maxScrolls', 0, 100, 15),
+  };
+  let pagesDone = 0, pagesFailed = 0, secDone = 0;
+  const secondary = [];
+  const secSeen = new Set();
+  const visited = new Set();
+  const progress = () => {
+    const total = visited.size + secSeen.size;
+    setProgress(pagesDone + secDone, total);
+    setStatus(`Páginas: ${pagesDone}/${visited.size}${options.followSecondary ? ` · páginas de imagem: ${secDone}/${secSeen.size}` : ''} · ${state.items.length} encontradas`);
+  };
+
+  try {
+    const { pages, direct } = await api('/api/expand', { inputs });
+    for (const d of direct) addItem({ url: d.url, kind: d.kind, page: new URL(d.url).origin + '/', title: '' });
+    if (direct.length) log(`${direct.length} URL(s) diretas geradas pela sequência`);
+
+    const pageQueue = pages.map((url) => ({ url, depth: 0 }));
+    pages.forEach((url) => visited.add(url));
+    progress();
+    await drain(pageQueue, 3, async (job) => {
+      const r = await apiWithAuth('/api/scan-page', { url: job.url, scripts: options.scripts, render: options.render, scroll: options.scroll, maxScrolls: options.maxScrolls });
+      pagesDone++;
+      if (r.error) {
+        pagesFailed++;
+        log(`Erro em ${job.url}: ${r.error}`, true);
+        return progress();
+      }
+      for (const img of r.images) addItem({ ...img, page: r.finalUrl, title: r.title });
+      if (options.followSecondary) {
+        for (const s of r.secondary) {
+          if (secSeen.has(s.url) || secSeen.size >= options.maxSecondary) continue;
+          secSeen.add(s.url);
+          secondary.push({ ...s, page: r.finalUrl, title: r.title });
+        }
+      }
+      if (options.paginate && job.depth + 1 < options.maxPages) {
+        const next = r.next.find((url) => !visited.has(url));
+        if (next) {
+          visited.add(next);
+          pageQueue.push({ url: next, depth: job.depth + 1 });
+        }
+      }
+      const via = r.rendered ? ` (navegador: ${r.render.scrolls} rolagem(ns)${r.render.clicks ? `, ${r.render.clicks} clique(s) em “carregar mais”` : ''})` : '';
+      log(`${r.images.length} imagem(ns)${r.secondary.length ? `, ${r.secondary.length} página(s) de imagem` : ''} em ${r.finalUrl}${via}`);
+      if (r.renderError) log(`Navegador falhou em ${r.finalUrl}: ${r.renderError} (usada a leitura simples)`, true);
+      progress();
+    });
+
+    await drain(secondary, 8, async (s) => {
+      const r = await apiWithAuth('/api/resolve', { url: s.url, referer: s.page, thumb: s.thumb, render: options.render });
+      secDone++;
+      if (r.error) log(`Página de imagem ${s.url}: ${r.error}`, true);
+      else if (r.best) {
+        addItem({ url: r.best.url, kind: r.best.kind, via: 'hosted', page: r.finalUrl || s.url, title: s.title || r.title, thumb: s.thumb, nameHint: r.best.nameHint, alternates: r.best.alternates, w: r.best.w, h: r.best.h });
+      }
+      progress();
+    });
+
+    const upgradedNote = await optimizeSizes();
+    const summary = `${state.items.length} arquivo(s) encontrados em ${pagesDone} página(s)${secDone ? ` e ${secDone} página(s) de imagem` : ''}${upgradedNote}${pagesFailed ? ` · ${pagesFailed} com erro` : ''}${state.cancel ? ' · cancelado' : ''}.${filterNote()}`;
+    setStatus(summary, !visibleItems().length);
+  } catch (err) {
+    setStatus(`Falha ao escanear: ${err.message}`, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+// Explica quando nada aparece: nada encontrado, ou tudo escondido pelos filtros.
+function filterNote() {
+  if (!state.items.length) return ' Nenhuma imagem encontrada: veja o Registro abaixo; em Opções avançadas, tente “Sempre abrir no navegador”.';
+  if (visibleItems().length) return '';
+  const f = filters();
+  const small = state.items.filter((i) => i.type !== 'video' && i.w && (i.w < f.minW || i.h < f.minH)).length;
+  const kind = state.items.filter((i) => !f.kinds.has(i.kind === 'video' ? i.origin : i.kind)).length;
+  const type = state.items.filter((i) => !f.types.has(i.type)).length;
+  const reasons = [
+    small && `${small} menor(es) que ${f.minW}×${f.minH} px`,
+    kind && `${kind} de origem desmarcada`,
+    type && `${type} de tipo desmarcado`,
+  ].filter(Boolean).join(', ');
+  return ` Nenhuma passou nos filtros${reasons ? ` (${reasons})` : ''}: ajuste os filtros acima para vê-las.`;
+}
+
+// ---------- busca ----------
+
+async function search() {
+  const query = $('#query').value.trim();
+  if (!query) return setStatus('Digite o que buscar.', true);
+  saveSettings();
+  resetResults();
+  setBusy(true);
+  state.cancel = false;
+  const provider = $('#provider').value;
+  setStatus(`Buscando “${query}” no ${$('#provider').selectedOptions[0].textContent}…`);
+  try {
+    const r = await api('/api/search', { provider, query, pages: num('#searchPages', 1, 10, 2) });
+    if (r.error) throw new Error(r.error);
+    for (const img of r.images) addItem({ url: img.url, kind: 'search', page: img.page || img.url, title: query, thumb: img.thumb, w: img.w, h: img.h });
+    const upgradedNote = await optimizeSizes();
+    setStatus(`${state.items.length} resultado(s) para “${query}”${upgradedNote}${state.cancel ? ' · cancelado' : ''}.${filterNote()}`, !visibleItems().length);
+    log(`Busca “${query}”: ${r.images.length} resultado(s)`);
+  } catch (err) {
+    setStatus(`Falha na busca: ${err.message}`, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+// ---------- download ----------
+
+async function download() {
+  const queue = visibleItems().filter((i) => i.checked);
+  if (!queue.length) return;
+  saveSettings();
+  const total = queue.length;
+  const folder = $('#folder').value.trim() || APP.defaultFolder;
+  const subfolderMode = $('#subfolder').value;
+  const common = {
+    folder,
+    skipExisting: $('#skipExisting').checked,
+    template: $('#template').value.trim() || '{name}',
+    pad: num('#seqPad', 0, 8, 3),
+    retries: num('#retries', 0, 10, 3),
+    validate: $('#validate').checked,
+  };
+  const start = num('#seqStart', 0, 1e9, 1);
+  queue.forEach((item, i) => { item.seq = start + i; });
+  let done = 0, saved = 0, skipped = 0, failed = 0, retried = 0;
+  setBusy(true);
+  state.cancel = false;
+  setProgress(0, total);
+  setStatus(`Baixando ${total} arquivo(s) para ${folder}…`);
+  for (const item of queue) item.el.classList.remove('saved', 'skipped', 'error');
+
+  await drain(queue, num('#concurrency', 1, 50, 8), async (item) => {
+    item.el.classList.add('working');
+    const subfolder = subfolderMode === 'title' ? item.title : subfolderMode === 'host' ? new URL(item.page || item.url).hostname.replace(/^www\./, '') : '';
+    try {
+      const r = await api('/api/save', { ...common, url: item.url, referer: item.page, n: item.seq, title: item.title || '', nameHint: item.nameHint, subfolder });
+      if (r.attempts > 1 || r.resumed) retried++;
+      if (r.skipped) { skipped++; item.el.classList.add('skipped'); }
+      else { saved++; item.el.classList.add('saved'); item.checked = false; item.box.checked = false; }
+    } catch (err) {
+      failed++;
+      item.el.classList.add('error');
+      log(`Falhou ${item.url}: ${err.message}`, true);
+    } finally {
+      item.el.classList.remove('working');
+      setProgress(++done, total);
+    }
+  });
+  const summary = `${saved} salvo(s), ${skipped} pulado(s), ${failed} com erro${retried ? ` · ${retried} precisaram de nova tentativa ou retomada` : ''}${state.cancel ? ' · cancelado' : ''}.`;
+  setStatus(summary, failed > 0 && !saved);
+  log(summary);
+  setBusy(false);
+  updateCounts();
+}
+
+// ---------- exportar código ----------
+
+const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+function exportItems() {
+  const visible = visibleItems().filter((i) => i.type !== 'video');
+  const selected = visible.filter((i) => i.checked);
+  return selected.length ? selected : visible;
+}
+
+function renderExport() {
+  const items = exportItems();
+  const format = $('#exportFormat').value;
+  const lines = items.map((i) => {
+    const thumb = i.thumb || i.url;
+    return format === 'bbcode'
+      ? `[url=${i.url}][img]${thumb}[/img][/url]`
+      : `<a href="${escapeHtml(i.url)}"><img src="${escapeHtml(thumb)}" alt=""></a>`;
+  });
+  $('#exportText').value = lines.join('\n');
+  $('#exportInfo').textContent = `${items.length} imagem(ns) ${visibleItems().some((i) => i.checked) ? 'selecionadas' : 'visíveis'}`;
+}
+
+async function copyExport() {
+  const text = $('#exportText').value;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    $('#exportText').select();
+    document.execCommand('copy');
+  }
+  $('#exportCopy').textContent = 'Copiado!';
+  setTimeout(() => { $('#exportCopy').textContent = 'Copiar'; }, 1500);
+}
+
+// ---------- seleção e eventos ----------
+
+function setSelection(fn) {
+  for (const item of visibleItems()) { item.checked = fn(item); item.box.checked = item.checked; }
+  updateCounts();
+}
+
+$('#scan').addEventListener('click', scan);
+$('#search').addEventListener('click', search);
+$('#urls').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) scan(); });
+$('#query').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+$('#download').addEventListener('click', download);
+$('#cancel').addEventListener('click', () => { state.cancel = true; setStatus('Cancelando após as tarefas em andamento…'); });
+$('#selAll').addEventListener('click', () => setSelection(() => true));
+$('#selNone').addEventListener('click', () => { for (const i of state.items) { i.checked = false; i.box.checked = false; } updateCounts(); });
+$('#selInvert').addEventListener('click', () => setSelection((i) => !i.checked));
+$('#openFolder').addEventListener('click', () => api('/api/open-folder', { folder: $('#folder').value.trim() }).catch((e) => setStatus(e.message, true)));
+$('#export').addEventListener('click', () => { renderExport(); $('#exportDialog').showModal(); });
+$('#exportFormat').addEventListener('change', renderExport);
+$('#exportCopy').addEventListener('click', copyExport);
+for (const el of $$('[data-kind],[data-type],#minW,#minH')) el.addEventListener('input', applyFilters);
+for (const el of $$('[data-setting]')) el.addEventListener('change', saveSettings);
+
+async function checkBrowser() {
+  const el = $('#browserStatus');
+  try {
+    const r = await api('/api/browser', {});
+    const names = { msedge: 'Microsoft Edge', chrome: 'Google Chrome', chromium: 'Chromium' };
+    el.textContent = r.available
+      ? `Navegador disponível: ${names[r.channel] || r.channel} (headless, invisível).`
+      : `Navegador indisponível: ${r.error}. As páginas serão lidas só em modo simples.`;
+    el.style.color = r.available ? '' : 'var(--warn)';
+  } catch (err) {
+    el.textContent = `Não foi possível verificar o navegador: ${err.message}`;
+  }
+}
+
+loadSettings();
+updateCounts();
+checkBrowser();
+</script>
+</body>
+</html>
